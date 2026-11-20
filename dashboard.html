@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>校园好物商城 · 数据看板</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gray: #6b7280;
+      --border: #e5e7eb;
+      --bg: #f5f6fa;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: #111827;
+      padding-bottom: 40px;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    .dash-header {
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+    }
+    .dash-header h1 { font-size: 18px; font-weight: 700; }
+    .dash-header .sub { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    .header-actions { display: flex; gap: 10px; }
+    .btn-link {
+      background: rgba(255,255,255,0.18); color: #fff;
+      border: 1px solid rgba(255,255,255,0.4);
+      padding: 7px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .btn-link:hover { background: rgba(255,255,255,0.3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px 20px; }
+
+    /* 指标卡 */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .kpi-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .kpi-label { font-size: 13px; color: var(--gray); margin-bottom: 8px; }
+    .kpi-value { font-size: 26px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .kpi-sub { font-size: 11px; color: var(--gray); margin-top: 4px; }
+    .kpi-card.success .kpi-value { color: var(--success); }
+    .kpi-card.warning .kpi-value { color: var(--warning); }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #fff; border-radius: 12px; padding: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+
+    /* 条形图 */
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .bar-label { width: 110px; font-size: 13px; text-align: right; color: #374151; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { flex: 1; background: #f3f4f6; border-radius: 6px; height: 22px; position: relative; overflow: hidden; }
+    .bar-fill {
+      height: 100%; border-radius: 6px;
+      background: linear-gradient(90deg, var(--primary), #7c3aed);
+      display: flex; align-items: center; justify-content: flex-end;
+      padding-right: 8px; color: #fff; font-size: 12px; font-weight: 600;
+      min-width: 2px;
+    }
+    .bar-rank {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--primary-light); color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .bar-rank.top1 { background: #fef3c7; color: #92400e; }
+    .bar-rank.top2 { background: #e0e7ff; color: #3730a3; }
+    .bar-rank.top3 { background: #fee2e2; color: #991b1b; }
+
+    /* 状态分布 */
+    .status-list { display: flex; flex-direction: column; gap: 10px; }
+    .status-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .status-name { width: 70px; color: #374151; }
+    .status-bar { flex: 1; background: #f3f4f6; border-radius: 6px; height: 18px; overflow: hidden; }
+    .status-bar > div { height: 100%; border-radius: 6px; }
+    .status-count { width: 40px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* 经营建议 */
+    .advice-list { display: flex; flex-direction: column; gap: 10px; }
+    .advice-item {
+      display: flex; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; font-size: 13px; line-height: 1.5;
+      border: 1px solid var(--border); background: #fafafa;
+    }
+    .advice-icon { font-size: 18px; flex-shrink: 0; }
+    .advice-item.tip { border-color: #fde68a; background: #fffbeb; }
+    .advice-item.warn { border-color: #fecaca; background: #fef2f2; }
+    .advice-item.good { border-color: #a7f3d0; background: #ecfdf5; }
+    .advice-empty { color: var(--gray); font-size: 13px; text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <header class="dash-header">
+    <div>
+      <h1>📊 校园好物商城 · 数据看板</h1>
+      <div class="sub">实时读取店铺端订单与库存数据</div>
+    </div>
+    <div class="header-actions">
+      <a class="btn-link" href="admin.html">前往后台管理 →</a>
+      <button class="btn-link" onclick="location.reload()">🔄 刷新数据</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- 核心指标 -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="row">
+      <div class="card">
+        <div class="card-title">🏆 销量 TOP5（按成交订单件数）</div>
+        <div id="top5"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📈 订单状态分布</div>
+        <div id="statusDist"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💡 自动经营建议</div>
+      <div id="advice" class="advice-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===================== 与店铺端共用键 =====================
+    const ORDER_KEY = "haowu_orders_v1";
+    const STOCK_KEY = "haowu_stock_v1";
+    const PRODUCT_OVERRIDES_KEY = "haowu_products_v1";
+
+    // 成交口径：已支付 / 配送中 / 已完成 都算成交
+    const DONE_STATUSES = ["paid", "shipped", "done"];
+
+    // 商品基础数据（与店铺端、后台保持一致，用于库存告警）
+    const PRODUCTS = [
+      {
+        id: 1, name: "无线蓝牙耳机", cat: "数码周边", price: 129, sold: 1286, emoji: "🎧",
+        tags: ["热销", "蓝牙5.3", "长续航"], desc: "轻巧贴耳，通勤学习都能沉浸聆听",
+        specs: [
+          { name: "颜色", options: ["曜石黑", "月光白"] },
+          { name: "版本", options: ["标准版", "主动降噪版"] }
+        ],
+        skus: [
+          { values: ["曜石黑", "标准版"], price: 129, stock: 42 },
+          { values: ["曜石黑", "主动降噪版"], price: 199, stock: 30 },
+          { values: ["月光白", "标准版"], price: 129, stock: 35 },
+          { values: ["月光白", "主动降噪版"], price: 199, stock: 0 }
+        ]
+      },
+      {
+        id: 2, name: "客制化机械键盘", cat: "数码周边", price: 299, sold: 568, emoji: "⌨️",
+        tags: ["热插拔", "三模连接", "客制化"], desc: "自由搭配轴体键帽，码字游戏更顺手",
+        specs: [
+          { name: "轴体", options: ["茶轴", "红轴"] },
+          { name: "配列", options: ["87键", "98键"] }
+        ],
+        skus: [
+          { values: ["茶轴", "87键"], price: 299, stock: 20 },
+          { values: ["茶轴", "98键"], price: 329, stock: 14 },
+          { values: ["红轴", "87键"], price: 309, stock: 16 },
+          { values: ["红轴", "98键"], price: 349, stock: 9 }
+        ]
+      },
+      {
+        id: 3, name: "桌面蓝牙音箱", cat: "数码周边", price: 159, sold: 736, emoji: "🔊",
+        tags: ["新品", "环绕立体声", "Type-C"], desc: "小体积也有好声音，点亮宿舍桌面",
+        specs: [{ name: "颜色", options: ["曜石黑", "奶白色", "靛蓝色"] }],
+        skus: [
+          { values: ["曜石黑"], price: 159, stock: 25 },
+          { values: ["奶白色"], price: 159, stock: 31 },
+          { values: ["靛蓝色"], price: 169, stock: 17 }
+        ]
+      },
+      {
+        id: 4, name: "帆布托特包", cat: "文创用品", price: 49, sold: 923, emoji: "👜",
+        tags: ["加厚帆布", "大容量", "日常百搭"], desc: "装下课本与日常，轻松搭出校园感",
+        specs: [
+          { name: "尺寸", options: ["中号", "大号"] },
+          { name: "图案", options: ["简约字母", "校园插画"] }
+        ],
+        skus: [
+          { values: ["中号", "简约字母"], price: 49, stock: 48 },
+          { values: ["中号", "校园插画"], price: 55, stock: 26 },
+          { values: ["大号", "简约字母"], price: 59, stock: 33 },
+          { values: ["大号", "校园插画"], price: 65, stock: 21 }
+        ]
+      },
+      {
+        id: 5, name: "高效荧光笔6支装", cat: "文创用品", price: 19.9, sold: 2103, emoji: "🖊️",
+        tags: ["热销", "六支装", "速干不晕染"], desc: "柔和显色不刺眼，课堂重点一眼可见",
+        specs: [{ name: "色系", options: ["莫兰迪色", "马卡龙色", "复古色"] }],
+        skus: [
+          { values: ["莫兰迪色"], price: 19.9, stock: 86 },
+          { values: ["马卡龙色"], price: 19.9, stock: 73 },
+          { values: ["复古色"], price: 19.9, stock: 54 }
+        ]
+      },
+      {
+        id: 6, name: "精装笔记本", cat: "文创用品", price: 35, sold: 689, emoji: "📓",
+        tags: ["新品", "100g纸张", "180度平摊"], desc: "厚实纸张顺滑好写，记录每个灵感",
+        specs: [
+          { name: "内页", options: ["横线页", "方格页"] },
+          { name: "装帧", options: ["锁线精装", "布面精装"] }
+        ],
+        skus: [
+          { values: ["横线页", "锁线精装"], price: 35, stock: 40 },
+          { values: ["横线页", "布面精装"], price: 45, stock: 18 },
+          { values: ["方格页", "锁线精装"], price: 35, stock: 36 },
+          { values: ["方格页", "布面精装"], price: 45, stock: 22 }
+        ]
+      },
+      {
+        id: 7, name: "混合坚果礼盒", cat: "休闲零食", price: 69, sold: 1542, emoji: "🥜",
+        tags: ["热销", "每日坚果", "独立小袋"], desc: "多种坚果科学搭配，随时补充能量",
+        specs: [{ name: "规格", options: ["500g分享装", "750g家庭装", "1kg礼盒装"] }],
+        skus: [
+          { values: ["500g分享装"], price: 69, stock: 52 },
+          { values: ["750g家庭装"], price: 99, stock: 34 },
+          { values: ["1kg礼盒装"], price: 129, stock: 20 }
+        ]
+      },
+      {
+        id: 8, name: "黑巧克力", cat: "休闲零食", price: 29, sold: 847, emoji: "🍫",
+        tags: ["纯可可脂", "浓醇丝滑", "独立包装"], desc: "可可香气浓醇，苦甜之间恰到好处",
+        specs: [{ name: "浓度", options: ["58%可可", "72%可可", "85%可可"] }],
+        skus: [
+          { values: ["58%可可"], price: 29, stock: 64 },
+          { values: ["72%可可"], price: 32, stock: 47 },
+          { values: ["85%可可"], price: 35, stock: 29 }
+        ]
+      },
+      {
+        id: 9, name: "芒果干", cat: "休闲零食", price: 22, sold: 1129, emoji: "🥭",
+        tags: ["新品", "厚切果肉", "酸甜可口"], desc: "厚切果肉有嚼劲，把热带阳光装进口袋",
+        specs: [{ name: "口味", options: ["经典原味", "低糖轻甜", "酸甜青梅"] }],
+        skus: [
+          { values: ["经典原味"], price: 22, stock: 58 },
+          { values: ["低糖轻甜"], price: 24, stock: 43 },
+          { values: ["酸甜青梅"], price: 24, stock: 37 }
+        ]
+      },
+      {
+        id: 10, name: "挂耳咖啡", cat: "咖啡饮品", price: 45, sold: 976, emoji: "☕",
+        tags: ["热销", "新鲜烘焙", "10包每盒"], desc: "一分钟手冲体验，唤醒每个早八清晨",
+        specs: [
+          { name: "口味", options: ["经典醇香", "坚果可可"] },
+          { name: "盒数", options: ["1盒", "2盒"] }
+        ],
+        skus: [
+          { values: ["经典醇香", "1盒"], price: 45, stock: 39 },
+          { values: ["经典醇香", "2盒"], price: 85, stock: 24 },
+          { values: ["坚果可可", "1盒"], price: 49, stock: 32 },
+          { values: ["坚果可可", "2盒"], price: 92, stock: 16 }
+        ]
+      },
+      {
+        id: 11, name: "冷萃咖啡液", cat: "咖啡饮品", price: 59, sold: 805, emoji: "🧊",
+        tags: ["0蔗糖", "即溶冷萃", "冷水可冲"], desc: "加水加奶都好喝，随时自制咖啡馆同款",
+        specs: [
+          { name: "浓度", options: ["经典浓度", "双倍浓缩"] },
+          { name: "条数", options: ["10条", "20条"] }
+        ],
+        skus: [
+          { values: ["经典浓度", "10条"], price: 59, stock: 46 },
+          { values: ["经典浓度", "20条"], price: 109, stock: 27 },
+          { values: ["双倍浓缩", "10条"], price: 65, stock: 35 },
+          { values: ["双倍浓缩", "20条"], price: 119, stock: 19 }
+        ]
+      },
+      {
+        id: 12, name: "陶瓷马克杯", cat: "咖啡饮品", price: 39, sold: 654, emoji: "🍵",
+        tags: ["新品", "釉下彩", "可进洗碗机"], desc: "温润陶瓷握感舒适，陪伴每段自习时光",
+        specs: [
+          { name: "容量", options: ["350ml", "450ml"] },
+          { name: "颜色", options: ["奶白色", "雾蓝色"] }
+        ],
+        skus: [
+          { values: ["350ml", "奶白色"], price: 39, stock: 41 },
+          { values: ["350ml", "雾蓝色"], price: 39, stock: 38 },
+          { values: ["450ml", "奶白色"], price: 45, stock: 26 },
+          { values: ["450ml", "雾蓝色"], price: 45, stock: 23 }
+        ]
+      }
+    ];
+
+    // ===================== 工具函数 =====================
+    function formatPrice(p) { return Number(Number(p).toFixed(2)).toString(); }
+    function getOrders() {
+      try {
+        const list = JSON.parse(localStorage.getItem(ORDER_KEY));
+        return Array.isArray(list) ? list : [];
+      } catch (e) { return []; }
+    }
+    function loadInventory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STOCK_KEY));
+        if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
+        PRODUCTS.forEach(p => p.skus.forEach((sku, i) => {
+          const s = Number(saved[`${p.id}-${i}`]);
+          if (Number.isInteger(s) && s >= 0) sku.stock = s;
+        }));
+      } catch (e) {}
+    }
+
+    // ===================== 计算指标 =====================
+    function computeMetrics() {
+      const orders = getOrders();
+      const doneOrders = orders.filter(o => DONE_STATUSES.includes(o.status));
+
+      const gmv = doneOrders.reduce((sum, o) => sum + ((o.amounts && o.amounts.total) || 0), 0);
+      const orderCount = doneOrders.length;
+      const avgPrice = orderCount > 0 ? gmv / orderCount : 0;
+
+      // 状态分布
+      const statusCount = { pending: 0, paid: 0, shipped: 0, done: 0, cancelled: 0 };
+      orders.forEach(o => { if (statusCount[o.status] != null) statusCount[o.status]++; });
+
+      // 销量 TOP5：聚合成交订单中每个商品的件数
+      const salesMap = {};
+      doneOrders.forEach(o => {
+        (o.items || []).forEach(it => {
+          const key = `${it.productId}`;
+          if (!salesMap[key]) salesMap[key] = { name: it.name, emoji: it.emoji || "📦", qty: 0 };
+          salesMap[key].qty += it.quantity;
+        });
+      });
+      const top5 = Object.values(salesMap).sort((a, b) => b.qty - a.qty).slice(0, 5);
+      const maxQty = top5.length ? top5[0].qty : 1;
+
+      // 已售件数（成交订单总件数）
+      const soldPieces = doneOrders.reduce((s, o) => s + (o.items || []).reduce((a, i) => a + i.quantity, 0), 0);
+
+      return { orders, doneOrders, gmv, orderCount, avgPrice, statusCount, top5, maxQty, soldPieces };
+    }
+
+    // ===================== 渲染 =====================
+    function renderKPI(m) {
+      const html = `
+        <div class="kpi-card success">
+          <div class="kpi-label">💰 GMV（成交总额）</div>
+          <div class="kpi-value">¥${formatPrice(m.gmv)}</div>
+          <div class="kpi-sub">已支付/配送中/已完成订单实付合计</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">📦 成交订单数</div>
+          <div class="kpi-value">${m.orderCount}</div>
+          <div class="kpi-sub">总订单 ${m.orders.length} 单</div>
+        </div>
+        <div class="kpi-card warning">
+          <div class="kpi-label">🧮 客单价</div>
+          <div class="kpi-value">¥${formatPrice(m.avgPrice)}</div>
+          <div class="kpi-sub">GMV ÷ 成交订单数</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">🛒 已售件数</div>
+          <div class="kpi-value">${m.soldPieces}</div>
+          <div class="kpi-sub">成交订单商品总件数</div>
+        </div>
+      `;
+      document.getElementById("kpiGrid").innerHTML = html;
+    }
+
+    function renderTop5(m) {
+      const el = document.getElementById("top5");
+      if (m.top5.length === 0) {
+        el.innerHTML = '<div class="advice-empty">暂无成交数据，去店铺端下单试试吧～</div>';
+        return;
+      }
+      el.innerHTML = m.top5.map((item, idx) => {
+        const pct = Math.max(4, Math.round((item.qty / m.maxQty) * 100));
+        const rankClass = idx === 0 ? "top1" : idx === 1 ? "top2" : idx === 2 ? "top3" : "";
+        return `
+          <div class="bar-row">
+            <div class="bar-rank ${rankClass}">${idx + 1}</div>
+            <div class="bar-label">${item.emoji} ${item.name}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%">${item.qty} 件</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderStatusDist(m) {
+      const total = m.orders.length || 1;
+      const config = [
+        { key: "pending",   label: "待支付", color: "#f59e0b" },
+        { key: "paid",      label: "待发货", color: "#3b82f6" },
+        { key: "shipped",   label: "配送中", color: "#6366f1" },
+        { key: "done",      label: "已完成", color: "#10b981" },
+        { key: "cancelled", label: "已取消", color: "#9ca3af" }
+      ];
+      document.getElementById("statusDist").innerHTML = `
+        <div class="status-list">
+          ${config.map(c => {
+            const n = m.statusCount[c.key];
+            const pct = Math.round((n / total) * 100);
+            return `
+              <div class="status-item">
+                <span class="status-dot" style="background:${c.color}"></span>
+                <span class="status-name">${c.label}</span>
+                <div class="status-bar"><div style="width:${pct}%;background:${c.color}"></div></div>
+                <span class="status-count">${n}</span>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    // ===================== 自动经营建议（规则引擎）=====================
+    function buildAdvice(m) {
+      const list = [];
+      const now = Date.now();
+      const DAY = 24 * 60 * 60 * 1000;
+
+      // 1. 待发货提醒
+      if (m.statusCount.paid > 0) {
+        list.push({ type: "warn", icon: "🚚", text: `有 ${m.statusCount.paid} 笔订单待发货，请尽快在「订单管理」中点击发货，避免影响买家体验。` });
+      }
+      // 2. 待支付超时催付（超过 24 小时）
+      const overduePending = m.orders.filter(o =>
+        o.status === "pending" && (now - new Date(o.createdAt).getTime()) > DAY
+      );
+      if (overduePending.length > 0) {
+        list.push({ type: "tip", icon: "⏰", text: `有 ${overduePending.length} 笔待支付订单已超过 24 小时，建议主动联系买家催付或取消以释放库存。` });
+      }
+      // 3. 库存不足告警（任意 SKU 库存 ≤ 5）
+      const lowStock = [];
+      PRODUCTS.forEach(p => p.skus.forEach((sku, i) => {
+        if (sku.stock <= 5) {
+          const spec = p.specs.map((s, idx) => `${s.name}:${sku.values[idx]}`).join("/");
+          lowStock.push(`${p.name}（${spec}）仅剩 ${sku.stock}`);
+        }
+      }));
+      if (lowStock.length > 0) {
+        list.push({ type: "warn", icon: "⚠️", text: `以下规格库存告急（≤5）：${lowStock.slice(0, 5).join("；")}${lowStock.length > 5 ? " 等" : ""}，建议尽快补货。` });
+      }
+      // 4. 断货告警
+      const outStock = [];
+      PRODUCTS.forEach(p => p.skus.forEach((sku, i) => {
+        if (sku.stock === 0) {
+          const spec = p.specs.map((s, idx) => `${s.name}:${sku.values[idx]}`).join("/");
+          outStock.push(`${p.name}（${spec}）`);
+        }
+      }));
+      if (outStock.length > 0) {
+        list.push({ type: "warn", icon: "🚫", text: `以下规格已断货：${outStock.slice(0, 5).join("；")}，可在后台临时下架或紧急补货。` });
+      }
+      // 5. 销量冠军 → 主推建议
+      if (m.top5.length > 0) {
+        const champ = m.top5[0];
+        list.push({ type: "good", icon: "🏆", text: `「${champ.name}」销量第一（${champ.qty} 件），建议在首页置顶主推，并确保库存充足。` });
+      }
+      // 6. 取消率分析
+      if (m.orders.length >= 5) {
+        const cancelRate = m.statusCount.cancelled / m.orders.length;
+        if (cancelRate >= 0.3) {
+          list.push({ type: "warn", icon: "📉", text: `订单取消率达 ${(cancelRate * 100).toFixed(0)}%，偏高。建议检查商品描述/价格是否准确，或跟进取消原因。` });
+        }
+      }
+      // 7. 客单价偏低建议
+      if (m.orderCount >= 3 && m.avgPrice > 0 && m.avgPrice < 40) {
+        list.push({ type: "tip", icon: "💡", text: `当前客单价 ¥${formatPrice(m.avgPrice)} 偏低，可考虑设置满减优惠券（如满59减5）或搭配组合装提升客单价。` });
+      }
+      // 8. 没有数据
+      if (list.length === 0) {
+        list.push({ type: "good", icon: "✅", text: "经营状况良好，暂无需要处理的事项。继续保持～" });
+      }
+      return list;
+    }
+
+    function renderAdvice(m) {
+      const list = buildAdvice(m);
+      document.getElementById("advice").innerHTML = list.map(a =>
+        `<div class="advice-item ${a.type}"><span class="advice-icon">${a.icon}</span><span>${a.text}</span></div>`
+      ).join("");
+    }
+
+    // ===================== 初始化 =====================
+    loadInventory();
+    const metrics = computeMetrics();
+    renderKPI(metrics);
+    renderTop5(metrics);
+    renderStatusDist(metrics);
+    renderAdvice(metrics);
+  </script>
+</body>
+</html>
